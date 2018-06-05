@@ -12,7 +12,6 @@ setup(name='keras_squeezenet',
       install_requires=['numpy>=1.9.1',
                         'scipy>=0.14',
                         'h5py',
-                        'tensorflow',
                         'keras',
                         'six>=1.9.0',
                         'pyyaml'])
