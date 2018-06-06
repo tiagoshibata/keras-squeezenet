@@ -1,7 +1,7 @@
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras import backend as K
 from keras.layers import Input, Convolution2D, MaxPooling2D, Activation, concatenate, Dropout, warnings
-from keras.layers import GlobalAveragePooling2D, GlobalMaxPooling2D
+from keras.layers import BatchNormalization, GlobalAveragePooling2D, GlobalMaxPooling2D
 from keras.models import Model
 from keras.engine.topology import get_source_inputs
 from keras.utils import get_file
@@ -25,7 +25,7 @@ def fire_module(x, fire_id, squeeze=16, expand=64):
         channel_axis = 1
     else:
         channel_axis = 3
-    
+
     x = Convolution2D(squeeze, (1, 1), padding='valid', name=s_id + sq1x1)(x)
     x = Activation('relu', name=s_id + relu + sq1x1)(x)
 
@@ -36,6 +36,7 @@ def fire_module(x, fire_id, squeeze=16, expand=64):
     right = Activation('relu', name=s_id + relu + exp3x3)(right)
 
     x = concatenate([left, right], axis=channel_axis, name=s_id + 'concat')
+    x = BatchNormalization()(x)
     return x
 
 
@@ -47,7 +48,7 @@ def SqueezeNet(include_top=True, weights='imagenet',
                classes=1000):
     """Instantiates the SqueezeNet architecture.
     """
-        
+
     if weights not in {'imagenet', None}:
         raise ValueError('The `weights` argument should be either '
                          '`None` (random initialization) or `imagenet` '
@@ -89,11 +90,11 @@ def SqueezeNet(include_top=True, weights='imagenet',
     x = fire_module(x, fire_id=7, squeeze=48, expand=192)
     x = fire_module(x, fire_id=8, squeeze=64, expand=256)
     x = fire_module(x, fire_id=9, squeeze=64, expand=256)
-    
+
     if include_top:
-        # It's not obvious where to cut the network... 
+        # It's not obvious where to cut the network...
         # Could do the 8th or 9th layer... some work recommends cutting earlier layers.
-    
+
         x = Dropout(0.5, name='drop9')(x)
 
         x = Convolution2D(classes, (1, 1), padding='valid', name='conv10')(x)
@@ -129,8 +130,8 @@ def SqueezeNet(include_top=True, weights='imagenet',
             weights_path = get_file('squeezenet_weights_tf_dim_ordering_tf_kernels_notop.h5',
                                     WEIGHTS_PATH_NO_TOP,
                                     cache_subdir='models')
-            
-        model.load_weights(weights_path)
+
+        model.load_weights(weights_path, by_name=True)
         if K.backend() == 'theano':
             layer_utils.convert_all_kernels_in_model(model)
 
@@ -146,5 +147,3 @@ def SqueezeNet(include_top=True, weights='imagenet',
                               'your Keras config '
                               'at ~/.keras/keras.json.')
     return model
-
-
